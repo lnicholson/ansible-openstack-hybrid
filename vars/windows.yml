@@ -1,0 +1,19 @@
+# Openstack Vars
+## Build Openstack variable objects (Linux)
+osp_controller: http://[controller ip address]:5000/v3
+username: admin
+password: 
+tower_jobid: 
+host_config_key: 
+bootstrap_callback_uuid: 
+bootstrap_callback_job_id: 
+fact_callback_uuid: 
+fact_callback_job_id: 
+conf_callback_uuid: 
+conf_callback_job_id: 
+instance_name: windowsdemo01
+network: 
+site: 
+env:
+machine_class: sandbox
+sec_groups: windows_base
