@@ -1,0 +1,13 @@
+## Build Openstack variable objects (Linux)
+osp_controller: http://[[ controller ip address ]]:5000/v3
+username: admin
+password: 
+tower_jobid: 
+host_config_key: 
+pre_host_config_key: 
+instance_name: dryrun01
+network: 
+site: 
+env: 
+machine_class: sandbox
+sec_groups: linux_base
