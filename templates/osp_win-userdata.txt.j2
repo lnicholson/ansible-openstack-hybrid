@@ -1,0 +1,47 @@
+#ps1_sysnative
+
+# Template variables
+$user='ansible-awx'
+$password={{ ansible_pass }}
+$secureString = ConvertTo-SecureString "$password" -AsPlainText -Force
+$url = "https://raw.githubusercontent.com/ansible/ansible/devel/examples/scripts/ConfigureRemotingForAnsible.ps1"
+$file = "$env:temp\ConfigureRemotingForAnsible.ps1"
+$source = "https://raw.githubusercontent.com/ansible/awx/devel/tools/scripts/request_tower_configuration.ps1"
+$destination = "C:/opt/scripts/request_tower_configuration.ps1"
+
+#Create Ansible Local Account
+Write-Output "Creating the Ansible Local Account"
+New-LocalUser "$user" -Password $secureString -FullName "$user" -Description "Ansible Automation"
+
+#Add Ansible Account to Admin Group
+Write-Output "Adding the Ansible Local Account to Admin Group"
+Add-LocalGroupMember -Group "Administrators" -Member "$user"
+
+#Enable Remote Desktop
+Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -value 0
+
+#Bootstrap WinRM
+Write-Output "Starting the Configuration of WinRM"
+Invoke-Expression ((New-Object System.Net.Webclient).DownloadString('https://raw.githubusercontent.com/ansible/ansible/devel/examples/scripts/ConfigureRemotingForAnsible.ps1'))
+
+#Create Scripts and Facts Directory
+New-Item -Type Directory -Path "C:/opt/scripts"
+New-Item -Type Directory -Path "C:/opt/facts"
+
+#Disable Windows Firewalls on all Networks
+Set-NetFirewallProfile -Profile Domain, Public, Private -Enabled False
+
+#Download the Ansible Tower Callback Script
+Invoke-WebRequest -Uri $source -OutFile $destination
+
+#Execute Callback for Initial Bootstrap for Windows Machines to be Automation Ready
+Invoke-Expression -Command "C:\\opt\\scripts\\request_tower_configuration.ps1 -k -s '{{ tower_server }}' -c '{{ bootstrap_callback_uuid }}' -t '{{ bootstrap_callback_job_id }}' -e '{ machine_class: {{ machine_class }}, env: {{ env }}, site: {{ site }}, patch_on_provision: {{ patch_on_provision }} }'"
+
+#Execute a callback to do a fact collection
+Invoke-Expression -Command "C:\\opt\\scripts\\request_tower_configuration.ps1 -k -s '{{ tower_server }}' -c '{{ fact_callback_uuid }}' -t '{{ fact_callback_job_id }}'"
+
+#Infamous Wait for inventory refresh before proceeding
+Start-Sleep -s 500
+
+#Execute a callback to do full configuration
+Invoke-Expression -Command "C:\\opt\\scripts\\request_tower_configuration.ps1 -k -s '{{ tower_server }}' -c '{{ conf_callback_uuid }}' -t '{{ conf_callback_job_id }}'"
