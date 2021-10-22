@@ -1,0 +1,25 @@
+#cloud-config
+          # for reference:
+          # http://cloudinit.readthedocs.org/en/latest/topics/examples.html
+          # https://access.redhat.com/articles/rhel-atomic-cloud-init-faq
+          preserve_hostname: false
+          users:
+            - default
+            - name: ansible-awx
+              groups: wheel
+              selinux_user: unconfined_u
+              lock_passwd: false
+              sudo: ALL=(ALL) NOPASSWD:ALL
+              ssh_authorized_keys:
+                - "{{ automation_key }}"
+          runcmd:
+           # this is post configuration job template
+           - mkdir -p /etc/ansible/facts.d
+           - curl http://169.254.169.254/openstack/latest/meta_data.json  | python -mjson.tool > /tmp/openstack.json
+           - awk '!/hostname/' /tmp/openstack.json && awk '!/name/' /tmp/openstack.json > /etc/ansible/facts.d/automation.fact
+           # Temporary way to kick off a fact collection before the bootstrap run.
+           - sleep 60
+           - curl -k -d 'host_config_key={{ pre_host_config_key }}' https://{{ default_tower_server }}:443/api/v2/job_templates/{{ fact_tower_jobid }}/callback/
+           # Adding a sleeper to delay the time to trigger the initial job until after the node is added to the inventory in the next play.
+           - sleep 60
+           - curl -k -d 'host_config_key={{ host_config_key }}' https://{{ default_tower_server }}:443/api/v2/job_templates/{{ tower_jobid }}/callback/
