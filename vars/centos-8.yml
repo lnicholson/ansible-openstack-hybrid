@@ -1,0 +1,3 @@
+## Variables file to translate OS choices in the survey to image choices in the Openstack platform.
+image_name: centos_8
+cloud_os: linux
